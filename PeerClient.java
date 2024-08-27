@@ -4,8 +4,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Scanner;
-import java.net.InetAddress;
-
 
 public class PeerClient {
     private static final String SERVER_ADDRESS = "localhost";
@@ -65,12 +63,11 @@ public class PeerClient {
         }
 
         buffer.flip();
-        byte[] addressBytes = new byte[4];
-        buffer.get(addressBytes);
-        int port = buffer.getInt();
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
 
-        InetSocketAddress peerAddress = new InetSocketAddress(InetAddress.getByAddress(addressBytes), port);
-        System.out.println("New peer connected: " + peerAddress);
+        String message = new String(bytes);
+        System.out.println("Received: " + message);
     }
 
     private void handleInput() {

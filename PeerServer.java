@@ -60,25 +60,24 @@ public class PeerServer {
         System.out.println("New peer connected: " + peerAddress);
     }
 	
-	private void sendExistingPeers(SocketChannel socketChannel) throws IOException{
+	private void sendExistingPeers(SocketChannel newSocketChannel) throws IOException{
 		
 		if(peers.isEmpty()){
 		    return;
 		}
 
-        int totalPeers = peers.size() - 1;		
+        int totalPeers = peers.size();		
 		ByteBuffer buffer = ByteBuffer.allocate(totalPeers * (addressSize + portSize));
 		
 		 // Fill the buffer with all peer addresses and ports
 		for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
-			SocketChannel peer = entry.getKey();
 			InetSocketAddress peerAddress = entry.getValue();
 			buffer.put(peerAddress.getAddress().getAddress()); 
 			buffer.putInt(peerAddress.getPort());              
 		}
 		
 		buffer.flip(); 
-		socketChannel.write(buffer);
+		newSocketChannel.write(buffer);
         buffer.rewind();
 	}
 

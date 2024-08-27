@@ -10,8 +10,8 @@ public class PeerServer {
     private Selector selector;
     private Map<SocketChannel, InetSocketAddress> peers;
 	
-	int addressSize = 4; // For IPv4 addresses
-	int portSize = 4;    // For the port number
+	int addressSize = 4; 
+	int portSize = 4;   
 
     public PeerServer() throws IOException {
         selector = Selector.open();
@@ -41,6 +41,7 @@ public class PeerServer {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                return;
             }
         }
     }
@@ -81,27 +82,39 @@ public class PeerServer {
         buffer.rewind();
 	}
 
-    private void handleRead(SelectionKey key) throws IOException {
+    private void handleRead(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-
-        int bytesRead = socketChannel.read(buffer);
-        if (bytesRead == -1) {
-            InetSocketAddress address = peers.remove(socketChannel);
-            socketChannel.close();
-            System.out.println("Peer disconnected: " + address);
-            return;
-        }
-
-        buffer.flip();
-        while (buffer.hasRemaining()) {
-            for (SocketChannel peer : peers.keySet()) {
-                if (peer != socketChannel) {
-                    peer.write(buffer.duplicate());
+    
+        try {
+            int bytesRead = socketChannel.read(buffer);
+            if (bytesRead == -1) {
+                InetSocketAddress address = peers.remove(socketChannel);
+                socketChannel.close();
+                System.out.println("Peer disconnected: " + address);
+                return;
+            }
+    
+            buffer.flip();
+            while (buffer.hasRemaining()) {
+                for (SocketChannel peer : peers.keySet()) {
+                    if (peer != socketChannel) {
+                        peer.write(buffer.duplicate());
+                    }
                 }
             }
+        } catch (IOException e) {
+            // Handle the exception here, typically by removing the peer and closing the socket
+            InetSocketAddress address = peers.remove(socketChannel);
+            try {
+                socketChannel.close();
+            } catch (IOException closeException) {
+                closeException.printStackTrace();
+            }
+            System.out.println("Peer connection reset: " + address);
         }
     }
+
 
     public static void main(String[] args) {
         try {

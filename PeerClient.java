@@ -4,11 +4,14 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Scanner;
+import java.net.InetAddress;
 
 public class PeerClient {
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
+    
+    private static final String PEERS_LIST_MARKER = "PEERS";
     private Selector selector;
     private SocketChannel serverChannel;
 
@@ -55,19 +58,41 @@ public class PeerClient {
     private void handleRead(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-
+    
         int bytesRead = channel.read(buffer);
         if (bytesRead == -1) {
             channel.close();
             return;
         }
-
+    
         buffer.flip();
-        byte[] bytes = new byte[buffer.remaining()];
-        buffer.get(bytes);
-
-        String message = new String(bytes);
-        System.out.println("Received: " + message);
+   
+        if (buffer.remaining() >= 5) {
+            byte[] marker = new byte[5];
+            buffer.get(marker);
+            String markerString = new String(marker);
+    
+            if (PEERS_LIST_MARKER.equals(markerString)) {
+              
+                while (buffer.remaining() >= 8) {
+                    byte[] addressBytes = new byte[4];
+                    buffer.get(addressBytes);
+                    int port = buffer.getInt();
+    
+                    InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
+                    InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
+                    System.out.println("Connected peer: " + peerAddress);
+                }
+                return; 
+            }
+        }
+    
+        if (buffer.hasRemaining()) {
+            byte[] remainingBytes = new byte[buffer.remaining()];
+            buffer.get(remainingBytes);
+            String message = new String(remainingBytes);
+            System.out.println("Received message: " + message);
+        }
     }
 
     private void handleInput() {

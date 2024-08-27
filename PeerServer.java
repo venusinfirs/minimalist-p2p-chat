@@ -7,6 +7,8 @@ import java.util.*;
 public class PeerServer {
     private static final int PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
+    private static final String PEERS_LIST_MARKER = "PEERS";
+    
     private Selector selector;
     private Map<SocketChannel, InetSocketAddress> peers;
     
@@ -53,31 +55,38 @@ public class PeerServer {
         socketChannel.register(selector, SelectionKey.OP_READ);
 
         InetSocketAddress peerAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+        
         peers.put(socketChannel, peerAddress);
+        sendExistingPeers(socketChannel);
         
         System.out.println("New peer connected: " + peerAddress);
     }
     
     private void sendExistingPeers(SocketChannel newSocketChannel) throws IOException{
         
-        if(peers.isEmpty()){
-    		    
-    		 return;
-    	}
-    		
-    	int totalPeers = peers.size();		
-        ByteBuffer buffer = ByteBuffer.allocate(totalPeers * (addressSize + portSize));
-             
-        for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
-            SocketChannel peer = entry.getKey();
-            InetSocketAddress peerAddress = entry.getValue();
-            buffer.put(peerAddress.getAddress().getAddress()); 
-            buffer.putInt(peerAddress.getPort());              
-        }
+          if (peers.isEmpty()) {
+                return;
+            }
+        
+            int totalPeers = peers.size();
+            ByteBuffer buffer = ByteBuffer.allocate(PEERS_LIST_MARKER.length() + totalPeers * (addressSize + portSize));
             
-        buffer.flip(); 
-        newSocketChannel.write(buffer);
-        buffer.rewind();
+            buffer.put(PEERS_LIST_MARKER.getBytes());
+        
+            for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
+                InetSocketAddress peerAddress = entry.getValue();
+                buffer.put(peerAddress.getAddress().getAddress());
+                buffer.putInt(peerAddress.getPort());
+            }
+        
+            buffer.flip();
+            
+            for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
+                 SocketChannel channel = entry.getKey(); 
+                 channel.write(buffer);   
+            }
+         
+            buffer.clear();
     }
 
     private void handleRead(SelectionKey key) {

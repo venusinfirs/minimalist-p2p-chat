@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
@@ -70,38 +71,8 @@ public class PeerClient {
         }
     
         buffer.flip();
-   
-        if (buffer.remaining() >= 5) {
 
-            var buffCopy = buffer.duplicate();
-            var markerLength = PEERS_LIST_MARKER.length();
-
-            buffCopy.limit(markerLength);
-            byte[] bytes = new byte[markerLength];
-            buffCopy.get(bytes);
-
-            var markerString = new String(bytes);
-    
-            if (PEERS_LIST_MARKER.equals(markerString)) {
-
-                buffer.position(5);
-                while (buffer.remaining() >= 8) {
-                    byte[] addressBytes = new byte[4];
-                    buffer.get(addressBytes);
-                    int port = buffer.getInt();
-    
-                    InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
-                    InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
-
-                    if(!peerAddress.equals(serverChannel.getLocalAddress())){
-                        peers.add(peerAddress);
-                       //System.out.println("Connected peer: " + peerAddress
-                         //       + ", serverChannel.getLocalAddress: " + serverChannel.getLocalAddress());
-                    }
-                }
-                return; 
-            }
-        }
+        getPeers(buffer);
     
         if (buffer.hasRemaining()) {
             byte[] remainingBytes = new byte[buffer.remaining()];
@@ -120,6 +91,39 @@ public class PeerClient {
                 serverChannel.write(buffer);
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    private void getPeers(ByteBuffer buffer) throws IOException {
+        if (buffer.remaining() >= 5) {
+
+            var buffCopy = buffer.duplicate();
+            var markerLength = PEERS_LIST_MARKER.length();
+
+            buffCopy.limit(markerLength);
+            byte[] bytes = new byte[markerLength];
+            buffCopy.get(bytes);
+
+            var markerString = new String(bytes);
+
+            if (PEERS_LIST_MARKER.equals(markerString)) {
+
+                buffer.position(5);
+                while (buffer.remaining() >= 8) {
+                    byte[] addressBytes = new byte[4];
+                    buffer.get(addressBytes);
+                    int port = buffer.getInt();
+
+                    InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
+                    InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
+
+                    if(!peerAddress.equals(serverChannel.getLocalAddress())){
+                        peers.add(peerAddress);
+                        //System.out.println("Connected peer: " + peerAddress
+                        //       + ", serverChannel.getLocalAddress: " + serverChannel.getLocalAddress());
+                    }
+                }
             }
         }
     }

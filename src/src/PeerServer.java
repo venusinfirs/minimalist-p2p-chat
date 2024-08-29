@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 
-public class PeerServer {
+public class  PeerServer {
     private static final int PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
     private static final String PEERS_LIST_MARKER = "PEERS";
@@ -55,7 +55,7 @@ public class PeerServer {
         socketChannel.register(selector, SelectionKey.OP_READ);
 
         InetSocketAddress peerAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
-        
+
         peers.put(socketChannel, peerAddress);
         sendExistingPeers(socketChannel);
         
@@ -82,8 +82,11 @@ public class PeerServer {
             buffer.flip();
             
             for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
-                 SocketChannel channel = entry.getKey(); 
-                 channel.write(buffer);   
+                var channel = entry.getKey();
+                buffer.rewind();
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
             }
          
             buffer.clear();

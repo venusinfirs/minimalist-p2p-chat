@@ -3,6 +3,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Scanner;
 import java.net.InetAddress;
 
@@ -14,6 +15,8 @@ public class PeerClient {
     private static final String PEERS_LIST_MARKER = "PEERS";
     private Selector selector;
     private SocketChannel serverChannel;
+
+   // private Map<SocketChannel, InetSocketAddress> peers;
 
     public PeerClient() throws IOException {
         selector = Selector.open();
@@ -55,7 +58,7 @@ public class PeerClient {
         }
     }
 
-    private void handleRead(SelectionKey key) throws IOException {
+    private void handleRead(SelectionKey key) throws IOException { //seems that it's not necessary to pass selection key here each time
         SocketChannel channel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
     
@@ -68,12 +71,21 @@ public class PeerClient {
         buffer.flip();
    
         if (buffer.remaining() >= 5) {
-            byte[] marker = new byte[5];
-            buffer.get(marker);
-            String markerString = new String(marker);
+
+            var buffCopy = buffer.duplicate();
+            var markerLength = PEERS_LIST_MARKER.length();
+
+            System.out.println("Marker length: " + markerLength);
+            buffCopy.limit(markerLength);
+            byte[] bytes = new byte[markerLength];
+            buffCopy.get(bytes);
+
+            var markerString = new String(bytes);
+            System.out.println("Marker string: " + markerString);
     
             if (PEERS_LIST_MARKER.equals(markerString)) {
-              
+
+                buffer.position(5);
                 while (buffer.remaining() >= 8) {
                     byte[] addressBytes = new byte[4];
                     buffer.get(addressBytes);

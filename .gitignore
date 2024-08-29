@@ -3,12 +3,13 @@
 /build/
 
 # Ignore IDE and tool-specific directories and files
-/.idea/
+/src/.idea/
 /.project
 /.classpath
 /.settings/
 /.vscode/
-/*.iml
+/src/*.iml
+/src/.gitignore
 
 # Ignore Maven and Gradle wrapper files
 /.mvn/wrapper/maven-wrapper.jar

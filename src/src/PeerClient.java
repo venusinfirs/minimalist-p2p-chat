@@ -3,6 +3,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
 import java.net.InetAddress;
@@ -16,7 +17,7 @@ public class PeerClient {
     private Selector selector;
     private SocketChannel serverChannel;
 
-   // private Map<SocketChannel, InetSocketAddress> peers;
+    private LinkedList<InetSocketAddress> peers = new LinkedList<>();
 
     public PeerClient() throws IOException {
         selector = Selector.open();
@@ -75,13 +76,11 @@ public class PeerClient {
             var buffCopy = buffer.duplicate();
             var markerLength = PEERS_LIST_MARKER.length();
 
-            System.out.println("Marker length: " + markerLength);
             buffCopy.limit(markerLength);
             byte[] bytes = new byte[markerLength];
             buffCopy.get(bytes);
 
             var markerString = new String(bytes);
-            System.out.println("Marker string: " + markerString);
     
             if (PEERS_LIST_MARKER.equals(markerString)) {
 
@@ -93,7 +92,12 @@ public class PeerClient {
     
                     InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
                     InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
-                    System.out.println("Connected peer: " + peerAddress);
+
+                    if(!peerAddress.equals(serverChannel.getLocalAddress())){
+                        peers.add(peerAddress);
+                       //System.out.println("Connected peer: " + peerAddress
+                         //       + ", serverChannel.getLocalAddress: " + serverChannel.getLocalAddress());
+                    }
                 }
                 return; 
             }

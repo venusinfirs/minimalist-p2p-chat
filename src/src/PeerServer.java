@@ -10,7 +10,8 @@ public class  PeerServer {
     private static final String PEERS_LIST_MARKER = "PEERS";
     
     private Selector selector;
-    private Map<SocketChannel, InetSocketAddress> peers;
+    private Map<SocketChannel, InetSocketAddress> peers; //it's better to transform map to InetSocketAddress arrayList
+    // when i'll get rid of message broadcasting
     
     private static final int addressSize = 4; 
     private static final int portSize = 4;    

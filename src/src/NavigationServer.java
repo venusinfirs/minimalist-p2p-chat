@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 
-public class  PeerServer {
+public class  NavigationServer {
     private static final int PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
     private static final String PEERS_LIST_MARKER = "PEERS";
@@ -16,7 +16,7 @@ public class  PeerServer {
     private static final int addressSize = 4; 
     private static final int portSize = 4;    
 
-    public PeerServer() throws IOException {
+    public NavigationServer() throws IOException {
         selector = Selector.open();
         peers = new HashMap<>();
         ServerSocketChannel serverSocket = ServerSocketChannel.open();
@@ -129,7 +129,7 @@ public class  PeerServer {
 
     public static void main(String[] args) {
         try {
-            PeerServer server = new PeerServer();
+            NavigationServer server = new NavigationServer();
             server.start();
         } catch (IOException e) {
             e.printStackTrace();

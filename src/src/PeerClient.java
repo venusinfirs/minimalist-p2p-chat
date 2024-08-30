@@ -1,17 +1,15 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Scanner;
 import java.net.InetAddress;
 
 public class PeerClient {
     private static final String SERVER_ADDRESS = "localhost";
-    private static final int SERVER_PORT = 12345;
+    private static final int NAVIGATION_SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
     
     private static final String PEERS_LIST_MARKER = "PEERS";
@@ -24,8 +22,9 @@ public class PeerClient {
         selector = Selector.open();
         serverChannel = SocketChannel.open();
         serverChannel.configureBlocking(false);
-        serverChannel.connect(new InetSocketAddress(SERVER_ADDRESS, SERVER_PORT));
-        serverChannel.register(selector, SelectionKey.OP_CONNECT);
+        serverChannel.connect(new InetSocketAddress(SERVER_ADDRESS, NAVIGATION_SERVER_PORT));
+        SelectionKey key = serverChannel.register(selector, SelectionKey.OP_CONNECT);
+        key.attach(PEERS_LIST_MARKER);
     }
 
     public void start() {
@@ -41,7 +40,7 @@ public class PeerClient {
                     keys.remove();
 
                     if (key.isConnectable()) {
-                        handleConnect(key);
+                        handleConnect(key, key.attachment().equals(PEERS_LIST_MARKER));
                     } else if (key.isReadable()) {
                         handleRead(key);
                     }
@@ -52,7 +51,10 @@ public class PeerClient {
         }
     }
 
-    private void handleConnect(SelectionKey key) throws IOException {
+    private void handleConnect(SelectionKey key, boolean isNavigationConnect) throws IOException {
+        if (isNavigationConnect) {
+            key.attach(null);
+        }
         SocketChannel channel = (SocketChannel) key.channel();
         if (channel.finishConnect()) {
             channel.register(selector, SelectionKey.OP_READ);

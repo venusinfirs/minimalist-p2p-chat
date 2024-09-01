@@ -1,5 +1,15 @@
-public class Main {
+import java.io.IOException;
+
+public class Main{
+
     public static void main(String[] args) {
-        System.out.println("Hello world!");
+        try {
+            var server = new ServerConnection();
+            PeerClient client = new PeerClient();
+            server.start();
+            client.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
 import java.net.InetAddress;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class PeerClient {
-    private static final String SERVER_ADDRESS = "localhost";
-    private static final int NAVIGATION_SERVER_PORT = 12345;
+
     private static final int BUFFER_SIZE = 1024;
     
     private static final String PEERS_LIST_MARKER = "PEERS";
@@ -19,12 +19,7 @@ public class PeerClient {
     private LinkedList<InetSocketAddress> peers = new LinkedList<>();
 
     public PeerClient() throws IOException {
-        selector = Selector.open();
-        serverChannel = SocketChannel.open();
-        serverChannel.configureBlocking(false);
-        serverChannel.connect(new InetSocketAddress(SERVER_ADDRESS, NAVIGATION_SERVER_PORT));
-        SelectionKey key = serverChannel.register(selector, SelectionKey.OP_CONNECT);
-        key.attach(PEERS_LIST_MARKER);
+
     }
 
     public void start() {
@@ -39,10 +34,14 @@ public class PeerClient {
                     SelectionKey key = keys.next();
                     keys.remove();
 
+                    while (!SharedResources.newPeersQueue.isEmpty()) {
+                        getPeers();
+                    }
+
                     if (key.isConnectable()) {
-                        handleConnect(key, key.attachment().equals(PEERS_LIST_MARKER));
+                       // handleConnect(key);
                     } else if (key.isReadable()) {
-                        handleRead(key);
+                        //handleRead(key);
                     }
                 }
             } catch (IOException e) {
@@ -51,37 +50,15 @@ public class PeerClient {
         }
     }
 
-    private void handleConnect(SelectionKey key, boolean isNavigationConnect) throws IOException {
-        if (isNavigationConnect) {
-            key.attach(null);
-        }
-        SocketChannel channel = (SocketChannel) key.channel();
-        if (channel.finishConnect()) {
-            channel.register(selector, SelectionKey.OP_READ);
-            System.out.println("Connected to the server.");
-        }
-    }
+    private void getPeers() throws IOException {
+        System.out.println("Try get peers from shared res");
+        ConcurrentLinkedQueue<PeerInfo> peerInfo = SharedResources.newPeersQueue;
 
-    private void handleRead(SelectionKey key) throws IOException { //seems that it's not necessary to pass selection key here each time
-        SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-    
-        int bytesRead = channel.read(buffer);
-        if (bytesRead == -1) {
-            channel.close();
-            return;
+        for (PeerInfo element : peerInfo) {
+            System.out.println("Connected peer: " + element.address.getAddress().getHostAddress()
+                    + ":" + element.address.getPort());;
         }
-    
-        buffer.flip();
 
-        getPeers(buffer);
-    
-        if (buffer.hasRemaining()) {
-            byte[] remainingBytes = new byte[buffer.remaining()];
-            buffer.get(remainingBytes);
-            String message = new String(remainingBytes);
-            System.out.println("Received message: " + message);
-        }
     }
 
     private void handleInput() {
@@ -90,52 +67,10 @@ public class PeerClient {
             String message = scanner.nextLine();
             try {
                 ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
-                serverChannel.write(buffer);
+                serverChannel.write(buffer); //open server channels for all the peers
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    private void getPeers(ByteBuffer buffer) throws IOException {
-        if (buffer.remaining() >= 5) {
-
-            var buffCopy = buffer.duplicate();
-            var markerLength = PEERS_LIST_MARKER.length();
-
-            buffCopy.limit(markerLength);
-            byte[] bytes = new byte[markerLength];
-            buffCopy.get(bytes);
-
-            var markerString = new String(bytes);
-
-            if (PEERS_LIST_MARKER.equals(markerString)) {
-
-                buffer.position(5);
-                while (buffer.remaining() >= 8) {
-                    byte[] addressBytes = new byte[4];
-                    buffer.get(addressBytes);
-                    int port = buffer.getInt();
-
-                    InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
-                    InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
-
-                    if(!peerAddress.equals(serverChannel.getLocalAddress())){
-                        peers.add(peerAddress);
-                        //System.out.println("Connected peer: " + peerAddress
-                        //       + ", serverChannel.getLocalAddress: " + serverChannel.getLocalAddress());
-                    }
-                }
-            }
-        }
-    }
-
-    public static void main(String[] args) {
-        try {
-            PeerClient client = new PeerClient();
-            client.start();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

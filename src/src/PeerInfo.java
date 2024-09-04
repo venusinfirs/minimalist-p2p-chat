@@ -1,9 +1,14 @@
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class PeerInfo{
-    public InetSocketAddress address;
+    public int port;
+    public InetAddress address;
+    public String id;
 
-    public PeerInfo(InetSocketAddress peerAddress) {
-        address = peerAddress;
+    public PeerInfo(InetAddress address, int port, String id) {
+        this.port = port;
+        this.address = address;
+        this.id = id;
     }
 }

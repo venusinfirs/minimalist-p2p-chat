@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-public class ServerConnection {
+public class ServerConnection extends Thread {
 
     private static final String SERVER_ADDRESS = "localhost";
     private static final int NAVIGATION_SERVER_PORT = 12345;
@@ -30,7 +30,10 @@ public class ServerConnection {
         serverChannel.register(selector, SelectionKey.OP_CONNECT);
     }
 
-    public void start() {
+    @Override
+    public void run() {
+
+        System.out.println("Running server connection...");
 
         while (true) {
             try {
@@ -86,7 +89,7 @@ public class ServerConnection {
         }
     }
 
-    private void getPeers(ByteBuffer buffer) throws IOException {
+    private synchronized void getPeers(ByteBuffer buffer) throws IOException {
         if (buffer.remaining() >= 5) {
 
             System.out.println("Try get peers");
@@ -112,7 +115,7 @@ public class ServerConnection {
 
                     if(!peerAddress.equals(serverChannel.getLocalAddress())){
                         //peers.add(peerAddress);
-                        SharedResources.newPeersQueue.add(new PeerInfo(peerAddress));
+                        SharedResources.addPeer(ipAddress,port);
                         //System.out.println("Connected peer: " + peerAddress
                           //     + ", serverChannel.getLocalAddress: " + serverChannel.getLocalAddress());
                     }

@@ -1,14 +1,10 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
-import java.net.InetAddress;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class PeerClient {
+public class Peer extends Thread {
 
     private static final int BUFFER_SIZE = 1024;
     
@@ -18,14 +14,17 @@ public class PeerClient {
 
     private LinkedList<InetSocketAddress> peers = new LinkedList<>();
 
-    public PeerClient() throws IOException {
+    public Peer() throws IOException {
 
     }
 
-    public void start() {
+    @Override
+    public void run() {
         new Thread(this::handleInput).start();
+        System.out.println("Running peer client...");
 
-        while (true) {
+
+       /* while (true) {
             try {
                 selector.select();
                 Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
@@ -34,9 +33,6 @@ public class PeerClient {
                     SelectionKey key = keys.next();
                     keys.remove();
 
-                    while (!SharedResources.newPeersQueue.isEmpty()) {
-                        getPeers();
-                    }
 
                     if (key.isConnectable()) {
                        // handleConnect(key);
@@ -47,30 +43,35 @@ public class PeerClient {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+        }  */
     }
 
     private void getPeers() throws IOException {
         System.out.println("Try get peers from shared res");
-        ConcurrentLinkedQueue<PeerInfo> peerInfo = SharedResources.newPeersQueue;
 
-        for (PeerInfo element : peerInfo) {
-            System.out.println("Connected peer: " + element.address.getAddress().getHostAddress()
-                    + ":" + element.address.getPort());;
-        }
+        SharedResources.getAllPeers().forEach((key, peer) -> System.out.println("[Peer] Getting peer from shared resources: " + key + ": " + peer.port));
 
     }
 
-    private void handleInput() {
+    private void handleInput(){
         Scanner scanner = new Scanner(System.in);
         while (true) {
             String message = scanner.nextLine();
-            try {
-                ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+
+            if(message.equals(PEERS_LIST_MARKER)){
+                try {
+                    getPeers();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+           /* try {
+                 ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
                 serverChannel.write(buffer); //open server channels for all the peers
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
         }
     }
 }

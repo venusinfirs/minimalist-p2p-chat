@@ -14,8 +14,9 @@ public class ServerConnection extends Thread {
     private static final int NAVIGATION_SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
     private static final String PEERS_LIST_MARKER = "PEERS";
+
     private Selector selector;
-    private SocketChannel serverChannel;
+    private SocketChannel peerChannel;
 
     private LinkedList<InetSocketAddress> peers = new LinkedList<>();
 
@@ -24,10 +25,12 @@ public class ServerConnection extends Thread {
     }
     private void ConnectToNavServer() throws IOException {
         selector = Selector.open();
-        serverChannel = SocketChannel.open();
-        serverChannel.configureBlocking(false);
-        serverChannel.connect(new InetSocketAddress(SERVER_ADDRESS, NAVIGATION_SERVER_PORT));
-        serverChannel.register(selector, SelectionKey.OP_CONNECT);
+        peerChannel = SocketChannel.open();
+        peerChannel.configureBlocking(false);
+        peerChannel.connect(new InetSocketAddress(SERVER_ADDRESS, NAVIGATION_SERVER_PORT));
+        peerChannel.register(selector, SelectionKey.OP_CONNECT);
+        
+        SessionDataUtils.LocalAddress = (InetSocketAddress) peerChannel.getLocalAddress();
     }
 
     @Override
@@ -113,7 +116,7 @@ public class ServerConnection extends Thread {
                     InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
                     InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
 
-                    if(!peerAddress.equals(serverChannel.getLocalAddress())){
+                    if(!peerAddress.equals(peerChannel.getLocalAddress())){
                         //peers.add(peerAddress);
                         SharedResources.addPeer(ipAddress,port);
                         //System.out.println("Connected peer: " + peerAddress

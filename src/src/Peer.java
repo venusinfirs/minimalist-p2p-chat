@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.LinkedList;
 import java.util.Scanner;
@@ -54,24 +55,23 @@ public class Peer extends Thread {
     }
 
     private void handleInput(){
+
+        var connectedPeers = SharedResources.getAllPeers();
+
+        if(connectedPeers.isEmpty()){
+            System.out.println("No peers in shared resources");
+            return;
+        }
         Scanner scanner = new Scanner(System.in);
         while (true) {
             String message = scanner.nextLine();
-
-            if(message.equals(PEERS_LIST_MARKER)){
-                try {
-                    getPeers();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-           /* try {
+            
+            try {
                  ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
-                serverChannel.write(buffer); //open server channels for all the peers
+                 serverChannel.write(buffer); //open server channels for all the peers
             } catch (IOException e) {
                 e.printStackTrace();
-            }*/
+            }
         }
     }
 }

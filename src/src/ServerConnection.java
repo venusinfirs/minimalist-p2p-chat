@@ -74,8 +74,6 @@ public class ServerConnection extends Thread {
         var port = SessionDataUtils.getPeerPort();
         var host = SessionDataUtils.getPeerHostAddress();
 
-        int portSize = Integer.BYTES;
-
         System.out.println("[ServerConnection] Sending peer info: peer id " + peerId + ",port: "
                 + port + ",host: " + SessionDataUtils.getPeerHostAddress());
 
@@ -108,34 +106,24 @@ public class ServerConnection extends Thread {
 
         buffer.flip();
 
+        System.out.println("[ServerConnection] Try get peers");
         getPeers(buffer);
     }
 
     private synchronized void getPeers(ByteBuffer buffer) throws IOException {
-        if (buffer.remaining() >= 5) {
+        while (buffer.remaining() >= SessionDataUtils.HostSize + Integer.BYTES + SessionDataUtils.PeerIdLength) {
 
-            System.out.println("Try get peers");
-            var buffCopy = buffer.duplicate();
-            var markerLength = PEERS_LIST_MARKER.length();
+            byte[] idBytes = new byte[SessionDataUtils.PeerIdLength];
+            buffer.get(idBytes);
+            String peerId = new String(idBytes);
 
-            buffCopy.limit(markerLength);
-            byte[] bytes = new byte[markerLength];
-            buffCopy.get(bytes);
+            int port = buffer.getInt();
 
-            var markerString = new String(bytes);
+            byte[] hostBytes = new byte[SessionDataUtils.HostSize];
+            buffer.get(hostBytes);
+            String host = new String(hostBytes);
 
-            if (PEERS_LIST_MARKER.equals(markerString)) {
-
-                buffer.position(5);
-                while (buffer.remaining() >= 8) {
-                    byte[] addressBytes = new byte[4];
-                    buffer.get(addressBytes);
-                    int port = buffer.getInt();
-
-                    InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
-                    //SharedResources.addPeer(ipAddress,port);
-                }
-            }
+            System.out.println("[ServerConnection] Peer received: id" + peerId + ",port: " + port + ",host: " + host);
         }
     }
 }

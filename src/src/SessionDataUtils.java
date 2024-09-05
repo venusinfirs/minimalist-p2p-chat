@@ -4,6 +4,7 @@ import java.util.UUID;
 public class SessionDataUtils {
 
     public static final int HostSize = 45; //padding space for IPv6
+    public static final int PeerIdLength = 32;
 
     private static InetSocketAddress localServerAddress;
 

@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -86,6 +87,7 @@ public class  NavigationServer {
                 buffer.get(hostBytes);
                 String host = new String(hostBytes);
 
+                peers.put(peerId, new PeerInfo(host, port, peerId));
                 System.out.println("Peer ID: " + peerId);
                 System.out.println("Port: " + port);
                 System.out.println("Host: " + host);

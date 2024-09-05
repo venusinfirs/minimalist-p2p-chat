@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Scanner;
 
@@ -16,7 +16,15 @@ public class Peer extends Thread {
     private LinkedList<InetSocketAddress> peers = new LinkedList<>();
 
     public Peer() throws IOException {
+        selector = Selector.open();
+        ServerSocketChannel serverSocket = ServerSocketChannel.open();
+        serverSocket.bind(new InetSocketAddress(0));
+        serverSocket.configureBlocking(false);
+        serverSocket.register(selector, SelectionKey.OP_ACCEPT);
 
+        SessionDataUtils.setServerAddress((InetSocketAddress) serverSocket.getLocalAddress());
+
+        System.out.println("[Peer] Listening on port " + SessionDataUtils.getPeerPort());
     }
 
     @Override
@@ -48,6 +56,7 @@ public class Peer extends Thread {
     }
 
     private void getPeers() throws IOException {
+
         System.out.println("Try get peers from shared res");
 
         SharedResources.getAllPeers().forEach((key, peer) -> System.out.println("[Peer] Getting peer from shared resources: " + key + ": " + peer.port));
@@ -56,22 +65,23 @@ public class Peer extends Thread {
 
     private void handleInput(){
 
-        var connectedPeers = SharedResources.getAllPeers();
-
-        if(connectedPeers.isEmpty()){
-            System.out.println("No peers in shared resources");
-            return;
-        }
         Scanner scanner = new Scanner(System.in);
+
         while (true) {
             String message = scanner.nextLine();
-            
-            try {
+            if(message.equals(PEERS_LIST_MARKER)){
+                try {
+                    getPeers();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            /* try {
                  ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
                  serverChannel.write(buffer); //open server channels for all the peers
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
         }
     }
 }

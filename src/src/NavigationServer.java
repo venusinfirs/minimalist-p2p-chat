@@ -10,11 +10,11 @@ public class  NavigationServer {
     private static final String PEERS_LIST_MARKER = "PEERS";
     
     private Selector selector;
-    private Map<SocketChannel, InetSocketAddress> peers; //it's better to transform map to InetSocketAddress arrayList
+    private Map<String, PeerInfo> peers; //it's better to transform map to InetSocketAddress arrayList
     // when i'll get rid of message broadcasting
-    
-    private static final int addressSize = 4; 
-    private static final int portSize = 4;    
+
+    private static final int idSize = 32;
+    private static final int addressSize = 45;
 
     public NavigationServer() throws IOException {
         selector = Selector.open();
@@ -56,76 +56,56 @@ public class  NavigationServer {
         socketChannel.register(selector, SelectionKey.OP_READ);
 
         InetSocketAddress peerAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
-
-        peers.put(socketChannel, peerAddress);
-        sendExistingPeers(socketChannel);
         
         System.out.println("New peer connected: " + peerAddress);
     }
-    
-    private void sendExistingPeers(SocketChannel newSocketChannel) throws IOException{
-        
-          if (peers.isEmpty()) {
-                return;
-            }
-        
-            int totalPeers = peers.size();
-            ByteBuffer buffer = ByteBuffer.allocate(PEERS_LIST_MARKER.length() + totalPeers * (addressSize + portSize));
-            
-            buffer.put(PEERS_LIST_MARKER.getBytes());
-        
-            for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
-                InetSocketAddress peerAddress = entry.getValue();
-                buffer.put(peerAddress.getAddress().getAddress());
-                buffer.putInt(peerAddress.getPort());
-            }
-        
-            buffer.flip();
-            
-            for (Map.Entry<SocketChannel, InetSocketAddress> entry : peers.entrySet()) {
-                var channel = entry.getKey();
-                buffer.rewind();
-                while (buffer.hasRemaining()) {
-                    channel.write(buffer);
-                }
-            }
-         
-            buffer.clear();
-    }
 
-    private void handleRead(SelectionKey key) {
+    private void handleRead(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(idSize + Integer.BYTES + addressSize);
 
         try {
             int bytesRead = socketChannel.read(buffer);
             if (bytesRead == -1) {
-                InetSocketAddress address = peers.remove(socketChannel);
                 socketChannel.close();
-                System.out.println("Peer disconnected: " + address);
+                System.out.println("Peer disconnected.");
                 return;
             }
 
             buffer.flip();
-            broadcastMessage(buffer, socketChannel);
+
+            // Check if there is enough data available in the buffer
+            if (buffer.remaining() >= idSize + Integer.BYTES + addressSize) {
+                byte[] data32Bytes = new byte[idSize];
+                buffer.get(data32Bytes);
+                String peerId = new String(data32Bytes);
+
+                int port = buffer.getInt();
+
+                byte[] hostBytes = new byte[addressSize];
+                buffer.get(hostBytes);
+                String host = new String(hostBytes);
+
+                System.out.println("Peer ID: " + peerId);
+                System.out.println("Port: " + port);
+                System.out.println("Host: " + host);
+            } else {
+                System.out.println("Not enough data available in buffer.");
+            }
+
+            buffer.clear();
+
         } catch (IOException e) {
-            InetSocketAddress address = peers.remove(socketChannel);
             try {
                 socketChannel.close();
             } catch (IOException closeException) {
                 closeException.printStackTrace();
             }
-            System.out.println("Peer connection reset: " + address);
+            System.out.println("Peer connection reset.");
         }
     }
 
-    private void broadcastMessage(ByteBuffer buffer, SocketChannel senderChannel) throws IOException {
-        for (SocketChannel peer : peers.keySet()) {
-            if (peer != senderChannel) {
-                peer.write(buffer.duplicate());
-            }
-        }
-    }
+
 
     public static void main(String[] args) {
         try {

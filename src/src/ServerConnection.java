@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -29,8 +30,6 @@ public class ServerConnection extends Thread {
         peerChannel.configureBlocking(false);
         peerChannel.connect(new InetSocketAddress(SERVER_ADDRESS, NAVIGATION_SERVER_PORT));
         peerChannel.register(selector, SelectionKey.OP_CONNECT);
-        
-        SessionDataUtils.LocalAddress = (InetSocketAddress) peerChannel.getLocalAddress();
     }
 
     @Override
@@ -55,6 +54,7 @@ public class ServerConnection extends Thread {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                return;
             }
         }
     }
@@ -63,12 +63,38 @@ public class ServerConnection extends Thread {
 
         SocketChannel channel = (SocketChannel) key.channel();
         if (channel.finishConnect()) {
+            sendPeerInfo(channel);
             channel.register(selector, SelectionKey.OP_READ);
             System.out.println("Connected to the server.");
         }
     }
 
-    private void handleRead(SelectionKey key) throws IOException { //seems that it's not necessary to pass selection key here each time
+    private void sendPeerInfo(SocketChannel channel) throws IOException {
+        String peerId = SessionDataUtils.generateHexId();
+        var port = SessionDataUtils.getPeerPort();
+        var host = SessionDataUtils.getPeerHostAddress();
+
+        int portSize = Integer.BYTES;
+
+        System.out.println("[ServerConnection] Sending peer info: peer id " + peerId + ",port: "
+                + port + ",host: " + SessionDataUtils.getPeerHostAddress());
+
+        ByteBuffer buffer = ByteBuffer.allocate(peerId.length() + Integer.BYTES + SessionDataUtils.HostSize);
+        buffer.put(peerId.getBytes());
+        buffer.putInt(port);
+        byte[] paddedHostBytes = Arrays.copyOf(host.getBytes(), 45); // pad to 45 bytes
+        buffer.put(paddedHostBytes);
+        buffer.flip();
+
+        while (buffer.hasRemaining()) {
+            channel.write(buffer);
+        }
+
+        buffer.clear();
+
+    }
+
+    private void handleRead(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
@@ -82,14 +108,7 @@ public class ServerConnection extends Thread {
 
         buffer.flip();
 
-        getPeers(buffer); // may be it's better to move this call to handle input
-
-        if (buffer.hasRemaining()) { //need to be removed
-            byte[] remainingBytes = new byte[buffer.remaining()];
-            buffer.get(remainingBytes);
-            String message = new String(remainingBytes);
-            System.out.println("Received message: " + message);
-        }
+        getPeers(buffer);
     }
 
     private synchronized void getPeers(ByteBuffer buffer) throws IOException {
@@ -114,14 +133,7 @@ public class ServerConnection extends Thread {
                     int port = buffer.getInt();
 
                     InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
-                    InetSocketAddress peerAddress = new InetSocketAddress(ipAddress, port);
-
-                    if(!peerAddress.equals(peerChannel.getLocalAddress())){
-                        //peers.add(peerAddress);
-                        SharedResources.addPeer(ipAddress,port);
-                        //System.out.println("Connected peer: " + peerAddress
-                          //     + ", serverChannel.getLocalAddress: " + serverChannel.getLocalAddress());
-                    }
+                    //SharedResources.addPeer(ipAddress,port);
                 }
             }
         }

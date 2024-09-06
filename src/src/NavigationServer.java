@@ -107,6 +107,9 @@ public class  NavigationServer {
             if (bytesRead == -1) {
                 socketChannel.close();
                 System.out.println("Peer disconnected.");
+
+                handleClosedConnection(socketChannel);
+
                 return;
             }
 
@@ -125,14 +128,7 @@ public class  NavigationServer {
                 closeException.printStackTrace();
             }
             System.out.println("Peer connection reset.");
-
-            for(var print : peersPrints.values()) {
-                if(print.navigationPort.get() == socketChannel.socket().getPort()) {
-                    peersPrints.remove(print);
-                }
-            }
-
-            existingChannels.remove(socketChannel);
+            handleClosedConnection(socketChannel);
         }
     }
 
@@ -175,6 +171,21 @@ public class  NavigationServer {
         buffer.flip();
 
         return buffer;
+    }
+
+    private void handleClosedConnection(SocketChannel socketChannel) throws IOException {
+
+        Iterator<Map.Entry<String, PeerInfo>> iterator = peersPrints.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, PeerInfo> entry = iterator.next();
+            if (entry.getValue().navigationPort.get() == socketChannel.socket().getPort()) {
+                iterator.remove();
+                System.out.println("Peer removed from peer prints, port: " + entry.getValue().port);
+            }
+        }
+
+        existingChannels.remove(socketChannel);
+        System.out.println("Peer removed from existing channels, port: " + socketChannel.socket().getPort());
     }
 
     public static void main(String[] args) {

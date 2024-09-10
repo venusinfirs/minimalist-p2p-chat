@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SharedResources {
     private static ConcurrentHashMap<String, PeerInfo> peersMap = new ConcurrentHashMap<>();
 
-    public static void addPeer(String address, int port, String peerName) {
-        var peer = new PeerInfo(address, port, peerName, null);
+    public static void addPeer(String host, int port, String peerName) {
+        var peer = new PeerInfo(host, port, peerName, null);
         peersMap.put(peerName, peer);
     }
 

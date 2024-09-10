@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +10,7 @@ public class ConnectionEventsManager {
         listeners.add(listener);
     }
 
-    public static synchronized void notifyOnConnection() {
+    public static synchronized void notifyOnConnection() throws IOException {
         for (ConnectionListener listener : listeners) {
             listener.onNewConnection();
         }

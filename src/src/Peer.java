@@ -28,7 +28,7 @@ public class Peer extends Thread implements ConnectionListener {
 
         eventManager.addListener(this);
 
-       // System.out.println("[Peer] Listening on port " + SessionDataUtils.getPeerPort());
+        System.out.println("[Peer] Listening on port " + SessionDataUtils.getPeerPort());
     }
 
     @Override
@@ -48,11 +48,9 @@ public class Peer extends Thread implements ConnectionListener {
                     if (key.isConnectable()) {
                         handleConnect(key);
                     } else if (key.isAcceptable()) {
-
+                        handleAccept(key);
                     } else if (key.isReadable()) {
                         handleRead(key);
-                    } else if (key.isAcceptable()) {
-                        //handleAccept();
                     }
                 }
             } catch (IOException e) {
@@ -61,20 +59,21 @@ public class Peer extends Thread implements ConnectionListener {
         }
     }
 
-    public void onNewConnection() {
+    public void onNewConnection() throws IOException {
+        updateConnections();
         System.out.println("New connection");
     }
 
     private void updateConnections() throws IOException {
-        //initiate peer connections here after receiving peers list
+
+        System.out.println("[Peer] Updating connections");
+
         var peers = SharedResources.getAllPeers();
 
-        currentConnections.clear();
+        //currentConnections.clear();
 
         for (var peer : peers.entrySet()){
-            if(currentConnections.containsKey(peer.getKey())){
-                continue;
-            }
+            System.out.println("[Peer] trying to create a new connection " + peer.getValue().port + peer.getValue().host);
             createNewConnection(peer.getValue());
         }
     }
@@ -82,32 +81,73 @@ public class Peer extends Thread implements ConnectionListener {
     private void createNewConnection(PeerInfo peer) throws IOException {
         var peerChannel = SocketChannel.open();
         peerChannel.configureBlocking(false);
-        peerChannel.connect(new InetSocketAddress(peer.host, peer.port));
-        currentConnections.put(peer.id ,peerChannel);
+        peerChannel.connect(new InetSocketAddress("127.0.0.1", peer.port)); //temporal solution - i need to support IPv6 somehow as well as IPv4
+        peerChannel.register(selector, SelectionKey.OP_CONNECT);
+
+        System.out.println("Peer channel created " + peer.host + ":" + peer.port);
+
+        currentConnections.put(peer.id ,peerChannel); //replace to handleAccept()
     }
 
-    private void handleRead(SelectionKey key){
+    private void handleAccept(SelectionKey key) throws IOException {
+        ServerSocketChannel serverSocket = (ServerSocketChannel) key.channel();
+        SocketChannel socketChannel = serverSocket.accept();
+        socketChannel.configureBlocking(false);
+        socketChannel.register(selector, SelectionKey.OP_READ);
 
+
+        System.out.println("New peer connected: " + socketChannel.getRemoteAddress());
     }
 
     private void handleConnect(SelectionKey key) throws IOException {
 
+        var peerChannel = (SocketChannel) key.channel();
+        if (peerChannel.finishConnect()) {
+            peerChannel.register(selector, SelectionKey.OP_READ);
+            System.out.println("[Peer] handle connect " + peerChannel.socket().getRemoteSocketAddress());
+        }
     }
+
+    private void handleRead(SelectionKey key) throws IOException {
+        SocketChannel channel = (SocketChannel) key.channel();
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
+        System.out.println("[Peer] Handle read");
+
+        int bytesRead = channel.read(buffer);
+        if (bytesRead == -1) {
+            channel.close();
+            return;
+        }
+
+        buffer.flip();
+        var message = new String(buffer.array());
+
+        System.out.println("Message received: " + message);
+    }
+
 
     private void handleInput(){
 
-       /* Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
 
         while (true) {
             String message = scanner.nextLine();
 
              try {
                  ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
-                 //peerChannel.write(buffer);
+                 for(var channel : currentConnections.values()){
+
+                     if (channel.isConnectionPending()) {
+                         channel.finishConnect(); 
+                     }
+
+                     channel.write(buffer);
+                 }
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }*/
+        }
     }
 }

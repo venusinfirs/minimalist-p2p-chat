@@ -38,7 +38,7 @@ public class  NavigationServer {
                     keys.remove();
 
                     if (key.isAcceptable()) {
-                        handleAccept(key);
+                        handlePeerAccept(key);
                     } else if (key.isReadable()) {
                         handleRead(key);
                     }
@@ -50,14 +50,14 @@ public class  NavigationServer {
         }
     }
 
-    private void handleAccept(SelectionKey key) throws IOException {
+    private void handlePeerAccept(SelectionKey key) throws IOException {
         ServerSocketChannel serverSocket = (ServerSocketChannel) key.channel();
         SocketChannel socketChannel = serverSocket.accept();
         socketChannel.configureBlocking(false);
         socketChannel.register(selector, SelectionKey.OP_READ);
 
         InetSocketAddress peerAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
-        
+
         System.out.println("New peer connected: " + peerAddress);
     }
 
@@ -180,12 +180,12 @@ public class  NavigationServer {
             Map.Entry<String, PeerInfo> entry = iterator.next();
             if (entry.getValue().navigationPort.get() == socketChannel.socket().getPort()) {
                 iterator.remove();
-              //  System.out.println("Peer removed from peer prints, port: " + entry.getValue().port);
+                System.out.println("Peer removed from peer prints, port: " + entry.getValue().port);
             }
         }
 
         existingChannels.remove(socketChannel);
-      //  System.out.println("Peer removed from existing channels, port: " + socketChannel.socket().getPort());
+        System.out.println("Peer removed from existing channels, port: " + socketChannel.socket().getPort());
     }
 
     public static void main(String[] args) {

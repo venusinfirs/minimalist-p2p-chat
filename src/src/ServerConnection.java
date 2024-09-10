@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -8,6 +7,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Optional;
 
 public class ServerConnection extends Thread {
 
@@ -108,10 +108,10 @@ public class ServerConnection extends Thread {
         buffer.flip();
 
         //System.out.println("[ServerConnection] Try get peers");
-        getPeers(buffer);
+        extractPeers(buffer);
     }
 
-    private synchronized void getPeers(ByteBuffer buffer) throws IOException {
+    private synchronized void extractPeers(ByteBuffer buffer) throws IOException {
         while (buffer.remaining() >= SessionDataUtils.HostSize + Integer.BYTES + SessionDataUtils.PeerIdLength) {
 
             byte[] idBytes = new byte[SessionDataUtils.PeerIdLength];
@@ -124,7 +124,9 @@ public class ServerConnection extends Thread {
             buffer.get(hostBytes);
             String host = new String(hostBytes);
 
-           // System.out.println("[ServerConnection] Peer received: id" + peerId + ",port: " + port + ",host: " + host);
+            SharedResources.addPeer(host, port, peerId);
+
+            System.out.println("[ServerConnection] Peer received: id" + peerId + ",port: " + port + ",host: " + host);
         }
     }
 }

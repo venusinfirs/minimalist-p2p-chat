@@ -152,9 +152,9 @@ public class  NavigationServer {
 
             peersPrints.put(peerId, newPeer);
 
-            System.out.println("Peer ID: " + peerId);
-            System.out.println("Port: " + port);
-            System.out.println("Host: " + host);
+           // System.out.println("Peer ID: " + peerId);
+           // System.out.println("Port: " + port);
+           // System.out.println("Host: " + host);
         } else {
             System.out.println("Not enough data available in buffer.");
         }
@@ -180,12 +180,12 @@ public class  NavigationServer {
             Map.Entry<String, PeerInfo> entry = iterator.next();
             if (entry.getValue().navigationPort.get() == socketChannel.socket().getPort()) {
                 iterator.remove();
-                System.out.println("Peer removed from peer prints, port: " + entry.getValue().port);
+              //  System.out.println("Peer removed from peer prints, port: " + entry.getValue().port);
             }
         }
 
         existingChannels.remove(socketChannel);
-        System.out.println("Peer removed from existing channels, port: " + socketChannel.socket().getPort());
+      //  System.out.println("Peer removed from existing channels, port: " + socketChannel.socket().getPort());
     }
 
     public static void main(String[] args) {

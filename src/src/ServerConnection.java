@@ -35,7 +35,7 @@ public class ServerConnection extends Thread {
     @Override
     public void run() {
 
-        System.out.println("Running server connection...");
+       // System.out.println("Running server connection...");
 
         while (true) {
             try {
@@ -50,6 +50,7 @@ public class ServerConnection extends Thread {
                         handleConnect(key);
                     } else if (key.isReadable()) {
                         handleRead(key);
+                        ConnectionEventsManager.notifyOnConnection();
                     }
                 }
             } catch (IOException e) {
@@ -74,8 +75,8 @@ public class ServerConnection extends Thread {
         var port = SessionDataUtils.getPeerPort();
         var host = SessionDataUtils.getPeerHostAddress();
 
-        System.out.println("[ServerConnection] Sending peer info: peer id " + peerId + ",port: "
-                + port + ",host: " + SessionDataUtils.getPeerHostAddress());
+      //  System.out.println("[ServerConnection] Sending peer info: peer id " + peerId + ",port: "
+        //        + port + ",host: " + SessionDataUtils.getPeerHostAddress());
 
         ByteBuffer buffer = ByteBuffer.allocate(peerId.length() + Integer.BYTES + SessionDataUtils.HostSize);
         buffer.put(peerId.getBytes());
@@ -96,7 +97,7 @@ public class ServerConnection extends Thread {
         SocketChannel channel = (SocketChannel) key.channel();
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        System.out.println("Handle read");
+        //System.out.println("Handle read");
 
         int bytesRead = channel.read(buffer);
         if (bytesRead == -1) {
@@ -106,7 +107,7 @@ public class ServerConnection extends Thread {
 
         buffer.flip();
 
-        System.out.println("[ServerConnection] Try get peers");
+        //System.out.println("[ServerConnection] Try get peers");
         getPeers(buffer);
     }
 
@@ -123,7 +124,7 @@ public class ServerConnection extends Thread {
             buffer.get(hostBytes);
             String host = new String(hostBytes);
 
-            System.out.println("[ServerConnection] Peer received: id" + peerId + ",port: " + port + ",host: " + host);
+           // System.out.println("[ServerConnection] Peer received: id" + peerId + ",port: " + port + ",host: " + host);
         }
     }
 }

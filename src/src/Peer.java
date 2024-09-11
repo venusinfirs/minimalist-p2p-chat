@@ -7,13 +7,10 @@ import java.util.*;
 public class Peer extends Thread implements ConnectionListener {
 
     private static final int BUFFER_SIZE = 1024;
-    
-    private static final String PEERS_LIST_MARKER = "PEERS";
     private Selector selector;
-    private SocketChannel serverChannel;
 
     private LinkedList<InetSocketAddress> peers = new LinkedList<>();
-    private HashMap<String,SocketChannel> currentConnections = new HashMap<String,SocketChannel>();
+    private HashMap<String,SocketChannel> currentConnections = new HashMap<>();
 
     public Peer() throws IOException {
         selector = Selector.open();
@@ -86,7 +83,7 @@ public class Peer extends Thread implements ConnectionListener {
 
         System.out.println("Peer channel created " + peer.host + ":" + peer.port);
 
-        currentConnections.put(peer.id ,peerChannel); //replace to handleAccept()
+        currentConnections.put(peer.id, peerChannel); //replace to handleAccept()
     }
 
     private void handleAccept(SelectionKey key) throws IOException {
@@ -139,7 +136,7 @@ public class Peer extends Thread implements ConnectionListener {
                  for(var channel : currentConnections.values()){
 
                      if (channel.isConnectionPending()) {
-                         channel.finishConnect(); 
+                         channel.finishConnect();
                      }
 
                      channel.write(buffer);

@@ -14,7 +14,6 @@ public class ServerConnection extends Thread {
     private static final String SERVER_ADDRESS = "localhost";
     private static final int NAVIGATION_SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
-    private static final String PEERS_LIST_MARKER = "PEERS";
 
     private Selector selector;
     private SocketChannel peerChannel;
@@ -50,7 +49,6 @@ public class ServerConnection extends Thread {
                         handleConnect(key);
                     } else if (key.isReadable()) {
                         handleRead(key);
-                        ConnectionEventsManager.notifyOnConnection();
                     }
                 }
             } catch (IOException e) {
@@ -61,12 +59,14 @@ public class ServerConnection extends Thread {
     }
 
     private void handleConnect(SelectionKey key) throws IOException {
-
         SocketChannel channel = (SocketChannel) key.channel();
         if (channel.finishConnect()) {
             sendPeerInfo(channel);
             channel.register(selector, SelectionKey.OP_READ);
             System.out.println("Connected to the server.");
+        }
+        else {
+            System.out.println("Failed to connect to the server.");
         }
     }
 
@@ -94,21 +94,26 @@ public class ServerConnection extends Thread {
     }
 
     private void handleRead(SelectionKey key) throws IOException {
-        SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        //System.out.println("Handle read");
+           SocketChannel channel = (SocketChannel) key.channel();
+           ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        int bytesRead = channel.read(buffer);
-        if (bytesRead == -1) {
-            channel.close();
-            return;
-        }
+           try {
+               int bytesRead = channel.read(buffer);
+               if (bytesRead == -1) {
+                   channel.close();
+                   return;
+               }
 
-        buffer.flip();
+               buffer.flip();
+               extractPeers(buffer);
 
-        //System.out.println("[ServerConnection] Try get peers");
-        extractPeers(buffer);
+               ConnectionEventsManager.notifyOnConnection();
+
+           }catch (IOException e) {
+               System.out.println("Connection lost: " + e.getMessage());
+               channel.close();
+           }
     }
 
     private synchronized void extractPeers(ByteBuffer buffer) throws IOException {

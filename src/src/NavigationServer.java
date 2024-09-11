@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -7,6 +8,7 @@ import java.util.*;
 public class  NavigationServer {
     private static final int PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
+    private static final int ALLOWED_CONNECTIONS_NUMBER = 2;
     
     private Selector selector;
     private Map<String, PeerInfo> peersPrints;
@@ -51,10 +53,23 @@ public class  NavigationServer {
     }
 
     private void handlePeerAccept(SelectionKey key) throws IOException {
+
         ServerSocketChannel serverSocket = (ServerSocketChannel) key.channel();
         SocketChannel socketChannel = serverSocket.accept();
         socketChannel.configureBlocking(false);
         socketChannel.register(selector, SelectionKey.OP_READ);
+
+        if(existingChannels.size() >= ALLOWED_CONNECTIONS_NUMBER){
+            ByteBuffer buffer = ByteBuffer.wrap("EXIT".getBytes());
+            while (buffer.hasRemaining()) {
+                socketChannel.write(buffer);
+            }
+            socketChannel.shutdownOutput();
+            socketChannel.close();
+
+            System.out.println("More than allowed peers number ");
+            return;
+        }
 
         InetSocketAddress peerAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
 

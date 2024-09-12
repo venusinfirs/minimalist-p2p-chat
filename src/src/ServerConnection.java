@@ -34,8 +34,6 @@ public class ServerConnection extends Thread {
     @Override
     public void run() {
 
-       // System.out.println("Running server connection...");
-
         while (true) {
             try {
                 selector.select();
@@ -63,7 +61,6 @@ public class ServerConnection extends Thread {
         if (channel.finishConnect()) {
             sendPeerInfo(channel);
             channel.register(selector, SelectionKey.OP_READ);
-            System.out.println("Connected to the server.");
         }
         else {
             System.out.println("Failed to connect to the server.");
@@ -71,15 +68,15 @@ public class ServerConnection extends Thread {
     }
 
     private void sendPeerInfo(SocketChannel channel) throws IOException {
-        String peerId = SessionDataUtils.generateHexId();
+        String peerId = SharedResources.getUserName();
         var port = SessionDataUtils.getPeerPort();
         var host = SessionDataUtils.getPeerHostAddress();
 
-      //  System.out.println("[ServerConnection] Sending peer info: peer id " + peerId + ",port: "
-        //        + port + ",host: " + SessionDataUtils.getPeerHostAddress());
+        ByteBuffer buffer = ByteBuffer.allocate(SessionDataUtils.PeerIdLength + Integer.BYTES + SessionDataUtils.HostSize);
 
-        ByteBuffer buffer = ByteBuffer.allocate(peerId.length() + Integer.BYTES + SessionDataUtils.HostSize);
-        buffer.put(peerId.getBytes());
+        byte[] paddedIdBytes = Arrays.copyOf(peerId.getBytes(), SessionDataUtils.PeerIdLength); // pad to 32 bytes
+        buffer.put(paddedIdBytes);
+
         buffer.putInt(port);
         byte[] paddedHostBytes = Arrays.copyOf(host.getBytes(), 45); // pad to 45 bytes
         buffer.put(paddedHostBytes);
@@ -131,7 +128,7 @@ public class ServerConnection extends Thread {
 
             SharedResources.addPeer(host, port, peerId);
 
-            System.out.println("[ServerConnection] Peer received: id" + peerId + ",port: " + port + ",host: " + host);
+            System.out.println("[ServerConnection] Peer received: id " + peerId + ",port: " + port + ",host: " + host);
         }
     }
 }

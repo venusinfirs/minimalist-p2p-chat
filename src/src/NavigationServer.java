@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -59,7 +58,7 @@ public class  NavigationServer {
         socketChannel.configureBlocking(false);
         socketChannel.register(selector, SelectionKey.OP_READ);
 
-        if(existingChannels.size() >= ALLOWED_CONNECTIONS_NUMBER){
+        if(existingChannels.size() >= ALLOWED_CONNECTIONS_NUMBER){ // number of allowed peers must be extended
             ByteBuffer buffer = ByteBuffer.wrap("EXIT".getBytes());
             while (buffer.hasRemaining()) {
                 socketChannel.write(buffer);
@@ -87,7 +86,8 @@ public class  NavigationServer {
                 continue;
             }
 
-            buffer.put(peer.getKey().getBytes());
+            byte[] paddedIdBytes = Arrays.copyOf(peer.getValue().name.getBytes(), 32); //pad to 32
+            buffer.put(paddedIdBytes);
             buffer.putInt(peer.getValue().port);
             byte[] paddedHostBytes = Arrays.copyOf(peer.getValue().host.getBytes(), 45); // pad to 45 bytes
             buffer.put(paddedHostBytes);
@@ -167,9 +167,9 @@ public class  NavigationServer {
 
             peersPrints.put(peerId, newPeer);
 
-           // System.out.println("Peer ID: " + peerId);
-           // System.out.println("Port: " + port);
-           // System.out.println("Host: " + host);
+            System.out.println("Peer ID: " + peerId);
+            System.out.println("Port: " + port);
+            System.out.println("Host: " + host);
         } else {
             System.out.println("Not enough data available in buffer.");
         }
@@ -179,7 +179,7 @@ public class  NavigationServer {
 
     private ByteBuffer getBytesFromPeerPrint(PeerInfo peerInfo){
         ByteBuffer buffer = ByteBuffer.allocate(idSize + Integer.BYTES + hostSize);
-        buffer.put(peerInfo.id.getBytes());
+        buffer.put(peerInfo.name.getBytes());
         buffer.putInt(peerInfo.port);
         byte[] paddedHostBytes = Arrays.copyOf(peerInfo.host.getBytes(), 45); // pad to 45 bytes
         buffer.put(paddedHostBytes);

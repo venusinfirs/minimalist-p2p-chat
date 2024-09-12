@@ -9,8 +9,7 @@ public class Peer extends Thread implements ConnectionListener {
     private static final int BUFFER_SIZE = 1024;
     private Selector selector;
 
-    private LinkedList<InetSocketAddress> peers = new LinkedList<>();
-    private HashMap<String,SocketChannel> currentConnections = new HashMap<>();
+    private HashMap<Integer,SocketChannel> currentConnections = new HashMap<>();
 
     public Peer() throws IOException {
         selector = Selector.open();
@@ -30,8 +29,8 @@ public class Peer extends Thread implements ConnectionListener {
 
     @Override
     public void run() {
+
         new Thread(this::handleInput).start();
-        //System.out.println("Running peer client...");
 
         while (true) {
             try {
@@ -58,19 +57,13 @@ public class Peer extends Thread implements ConnectionListener {
 
     public void onNewConnection() throws IOException {
         updateConnections();
-        System.out.println("New connection");
     }
 
     private void updateConnections() throws IOException {
 
-        System.out.println("[Peer] Updating connections");
-
         var peers = SharedResources.getAllPeers();
 
-        //currentConnections.clear();
-
         for (var peer : peers.entrySet()){
-            System.out.println("[Peer] trying to create a new connection " + peer.getValue().port + peer.getValue().host);
             createNewConnection(peer.getValue());
         }
     }
@@ -81,9 +74,7 @@ public class Peer extends Thread implements ConnectionListener {
         peerChannel.connect(new InetSocketAddress("127.0.0.1", peer.port)); //temporal solution - i need to support IPv6 somehow as well as IPv4
         peerChannel.register(selector, SelectionKey.OP_CONNECT);
 
-        System.out.println("Peer channel created " + peer.host + ":" + peer.port);
-
-        currentConnections.put(peer.id, peerChannel); //replace to handleAccept()
+        currentConnections.put(peerChannel.socket().getPort(), peerChannel);
     }
 
     private void handleAccept(SelectionKey key) throws IOException {
@@ -91,9 +82,6 @@ public class Peer extends Thread implements ConnectionListener {
         SocketChannel socketChannel = serverSocket.accept();
         socketChannel.configureBlocking(false);
         socketChannel.register(selector, SelectionKey.OP_READ);
-
-
-        System.out.println("New peer connected: " + socketChannel.getRemoteAddress());
     }
 
     private void handleConnect(SelectionKey key) throws IOException {
@@ -101,15 +89,15 @@ public class Peer extends Thread implements ConnectionListener {
         var peerChannel = (SocketChannel) key.channel();
         if (peerChannel.finishConnect()) {
             peerChannel.register(selector, SelectionKey.OP_READ);
-            System.out.println("[Peer] handle connect " + peerChannel.socket().getRemoteSocketAddress());
         }
+
+        System.out.println(SessionDataUtils.getUserNameByPort(peerChannel.socket().getPort()) + " entered chat");
     }
 
     private void handleRead(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        System.out.println("[Peer] Handle read");
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
         int bytesRead = channel.read(buffer);
         if (bytesRead == -1) {

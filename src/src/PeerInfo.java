@@ -3,13 +3,13 @@ import java.util.Optional;
 public class PeerInfo{
     public int port;
     public String host;
-    public String id;
+    public String name;
     public Optional<Integer> navigationPort;
 
-    public PeerInfo(String address, int port, String id, Optional<Integer> navigationPort) {
+    public PeerInfo(String host, int port, String id, Optional<Integer> navigationPort) {
         this.port = port;
-        this.host = address;
-        this.id = id;
+        this.host = host;
+        this.name = id;
         this.navigationPort = navigationPort;
     }
 }

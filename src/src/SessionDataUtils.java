@@ -24,4 +24,15 @@ public class SessionDataUtils {
     public static String getPeerHostAddress() {
         return localServerAddress.getAddress().getHostAddress();
     }
+
+    public static String getUserNameByPort(int port) {
+        var peers = SharedResources.getAllPeers();
+        var name = peers.get(port);
+
+        if (name == null) {
+            System.out.println("[SessionDataUtils] No user name associated with port: " + port);
+            return null;
+        }
+        return name.name;
+    }
 }

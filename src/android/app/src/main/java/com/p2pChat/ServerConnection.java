@@ -1,3 +1,5 @@
+package com.p2pChat;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -11,7 +13,7 @@ import java.util.LinkedList;
 
 public class ServerConnection extends Thread {
 
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "localhost"; //"10.0.2.2";
     private static final int NAVIGATION_SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
 
@@ -92,25 +94,25 @@ public class ServerConnection extends Thread {
 
     private void handleRead(SelectionKey key) throws IOException {
 
-           SocketChannel channel = (SocketChannel) key.channel();
-           ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        SocketChannel channel = (SocketChannel) key.channel();
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-           try {
-               int bytesRead = channel.read(buffer);
-               if (bytesRead == -1) {
-                   channel.close();
-                   return;
-               }
+        try {
+            int bytesRead = channel.read(buffer);
+            if (bytesRead == -1) {
+                channel.close();
+                return;
+            }
 
-               buffer.flip();
-               extractPeers(buffer);
+            buffer.flip();
+            extractPeers(buffer);
 
-               ConnectionEventsManager.notifyOnConnection();
+            ConnectionEventsManager.notifyOnConnection();
 
-           }catch (IOException e) {
-               System.out.println("Connection lost: " + e.getMessage());
-               channel.close();
-           }
+        }catch (IOException e) {
+            System.out.println("Connection lost: " + e.getMessage());
+            channel.close();
+        }
     }
 
     private synchronized void extractPeers(ByteBuffer buffer) throws IOException {
@@ -132,3 +134,4 @@ public class ServerConnection extends Thread {
         }
     }
 }
+

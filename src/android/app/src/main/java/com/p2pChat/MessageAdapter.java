@@ -1,4 +1,4 @@
-package com;
+package com.p2pChat;
 
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;

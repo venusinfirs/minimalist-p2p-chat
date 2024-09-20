@@ -1,4 +1,4 @@
-package com;
+package com.p2pChat;
 
 public class Message {
     private String text;

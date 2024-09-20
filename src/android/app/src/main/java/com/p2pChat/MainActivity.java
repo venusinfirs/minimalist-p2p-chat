@@ -1,4 +1,4 @@
-package com;
+package com.p2pChat;
 
 import android.os.Bundle;
 import android.view.View;
@@ -11,14 +11,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.experimental.myapplication.R;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    // Declare your RecyclerView and Adapter here
     private RecyclerView recyclerView;
     private MessageAdapter adapter;
     private List<Message> messageList;
+    private Peer client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         setupSendButton();
+
+        startPeer();
     }
 
     private void setupSendButton() {
@@ -63,5 +66,19 @@ public class MainActivity extends AppCompatActivity {
         messageList.add(message);
         adapter.notifyItemInserted(messageList.size() - 1);
         recyclerView.scrollToPosition(messageList.size() - 1);
+
+        client.handleInput(messageText);
+    }
+
+    private void startPeer(){
+        try {
+            var server = new ServerConnection();
+            client = new Peer();
+            server.start();
+            client.start();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

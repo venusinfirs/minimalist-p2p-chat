@@ -15,11 +15,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ConnectionListener {
     private RecyclerView recyclerView;
     private MessageAdapter adapter;
     private List<Message> messageList;
-    private Peer client;
+    private Peer peer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
         messageList = new ArrayList<>();
         adapter = new MessageAdapter(messageList);
         recyclerView.setAdapter(adapter);
+
+        ConnectionEventsManager.addReadListener(this);
 
         setupSendButton();
 
@@ -47,7 +49,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String messageText = editTextMessage.getText().toString();
                 if (!messageText.isEmpty()) {
-                    sendMessage(messageText);
+                    try {
+                        sendMessage(messageText);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                     editTextMessage.setText("");
                 }
             }
@@ -61,24 +67,44 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.scrollToPosition(messageList.size() - 1);
     }
 
-    private void sendMessage(String messageText) {
+    private void sendMessage(String messageText) throws Exception{
         Message message = new Message(messageText, System.currentTimeMillis());
         messageList.add(message);
         adapter.notifyItemInserted(messageList.size() - 1);
         recyclerView.scrollToPosition(messageList.size() - 1);
 
-        client.handleInput(messageText);
+        System.out.println("[MainActivity] Sending message");
+
+        ConnectionEventsManager.notifyOnWrite(messageText);
     }
 
-    private void startPeer(){
-        try {
-            var server = new ServerConnection();
-            client = new Peer();
-            server.start();
-            client.start();
+    private void startPeer() {
+        new Thread(() -> {
+            try {
+                ServerConnection serverConnection = new ServerConnection();
+                peer = new Peer();
+                serverConnection.run();
+                peer.run();
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+    }
+
+    @Override
+    public void onNewConnection() throws IOException {
+
+    }
+
+    @Override
+    public void onRead(String message) throws IOException {
+        System.out.println("[MainActivity] Message received: " + message);
+        receiveMessage(message);
+    }
+
+    @Override
+    public void onWrite(String message) throws IOException {
+
     }
 }

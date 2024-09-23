@@ -11,9 +11,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 
-public class ServerConnection extends Thread {
+public class ServerConnection implements Runnable {
 
-    private static final String SERVER_ADDRESS = "localhost"; //"10.0.2.2";
+    private static final String SERVER_ADDRESS = "localhost";//"10.0.2.2";
     private static final int NAVIGATION_SERVER_PORT = 12345;
     private static final int BUFFER_SIZE = 1024;
 
@@ -70,7 +70,7 @@ public class ServerConnection extends Thread {
     }
 
     private void sendPeerInfo(SocketChannel channel) throws IOException {
-        String peerId = SharedResources.getUserName();
+        String peerId = "placeholder_name";//SharedResources.getUserName();
         var port = SessionDataUtils.getPeerPort();
         var host = SessionDataUtils.getPeerHostAddress();
 

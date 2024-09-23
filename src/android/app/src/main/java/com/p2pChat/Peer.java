@@ -7,7 +7,7 @@ import java.nio.channels.*;
 import java.util.*;
 
 
-public class Peer extends Thread implements ConnectionListener {
+public class Peer implements ConnectionListener, Runnable {
 
     private static final int BUFFER_SIZE = 1024;
     private Selector selector;
@@ -23,9 +23,8 @@ public class Peer extends Thread implements ConnectionListener {
 
         SessionDataUtils.setServerAddress((InetSocketAddress) serverSocket.getLocalAddress());
 
-        ConnectionEventsManager eventManager = new ConnectionEventsManager();
-
-        eventManager.addListener(this);
+        ConnectionEventsManager.addListener(this);
+        ConnectionEventsManager.addWriteListener(this);
 
         System.out.println("[Peer] Listening on port " + SessionDataUtils.getPeerPort());
     }
@@ -52,12 +51,27 @@ public class Peer extends Thread implements ConnectionListener {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                return;
             }
         }
     }
 
     public void onNewConnection() throws IOException {
+
+        System.out.println("[Peer] New connection ");
+
         updateConnections();
+    }
+
+    @Override
+    public void onRead(String message) throws IOException {
+
+    }
+
+    @Override
+    public void onWrite(String message) throws IOException {
+        System.out.println("[Peer] on message sent");
+        handleInput(message);
     }
 
     private void updateConnections() throws IOException {
@@ -109,28 +123,28 @@ public class Peer extends Thread implements ConnectionListener {
         buffer.flip();
         var message = new String(buffer.array());
 
-        System.out.println("Message received: " + message);
+        ConnectionEventsManager.notifyOnRead(message);
+
+        System.out.println("[Peer] Message received: " + message);
     }
 
 
-    public void handleInput(String message){
+    public synchronized void handleInput(String message){
 
-        while (true) {
+        try {
+            ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+            for(var channel : currentConnections.values()){
 
-            try {
-                ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
-                for(var channel : currentConnections.values()){
-
-                    if (channel.isConnectionPending()) {
-                        channel.finishConnect();
-                    }
-
-                    channel.write(buffer);
+                if (channel.isConnectionPending()) {
+                    channel.finishConnect();
                 }
 
-            } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("[Peer] Handle input for peer " + channel.socket().getInetAddress());
+
+                channel.write(buffer);
             }
+        } catch (IOException e) {
+                e.printStackTrace();
         }
     }
 }

@@ -35,4 +35,15 @@ public class SessionDataUtils {
         }
         return name.name;
     }
+
+    public static String getUserNameByIp(String ip) {
+        var peers = SharedResources.getAllPeers();
+
+        for(var peer : peers.values()) {
+            if(peer.name != null && peer.name.equals(ip)) {
+                return peer.name;
+            }
+        }
+        return null;
+    }
 }

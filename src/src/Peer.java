@@ -51,6 +51,7 @@ public class Peer extends Thread implements ConnectionListener {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                return;
             }
         }
     }
@@ -97,18 +98,24 @@ public class Peer extends Thread implements ConnectionListener {
     private void handleRead(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
 
+        var host = channel.socket().getInetAddress().getHostAddress();
+
         ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        try {
+            int bytesRead = channel.read(buffer);
+            if (bytesRead == -1) {
+                channel.close();
+                return;
+            }
 
-        int bytesRead = channel.read(buffer);
-        if (bytesRead == -1) {
+            buffer.flip();
+            var message = new String(buffer.array());
+
+            System.out.println(SessionDataUtils.getUserNameByIp(host) + ": " + message);
+        } catch (IOException e) {
+            System.out.println(SessionDataUtils.getUserNameByIp(host) + " is disconnected");
             channel.close();
-            return;
         }
-
-        buffer.flip();
-        var message = new String(buffer.array());
-
-        System.out.println("Message received: " + message);
     }
 
 

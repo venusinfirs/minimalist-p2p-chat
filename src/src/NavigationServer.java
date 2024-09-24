@@ -200,6 +200,7 @@ public class  NavigationServer {
         }
 
         existingChannels.remove(socketChannel);
+
         System.out.println("Peer removed from existing channels, port: " + socketChannel.socket().getPort());
     }
 
